@@ -27,7 +27,6 @@ part1 = sum
   where points 0 = 0
         points x = 2 ^ (x - 1)
 
-part2 :: [[Char]] -> Int
 part2 = sum . foldr acc [] . wins
   where 
     acc = curry $ uncurry (:) . first ((+1) . sum . uncurry take) . (id &&& snd)
