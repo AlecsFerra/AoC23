@@ -22,11 +22,10 @@ parseFile src
 solve = fst . minimum .: foldl' applyAllRules
 
 applyAllRules = curry $ uncurry (++) 
-                      . uncurry (foldl' 
-                                $ uncurry 
-                                $ flip ((.) . second . (++)) 
-                                . (swap .) 
-                                . flip applyAllSeeds)
+                      . uncurry (foldl' . uncurry 
+                                        $ flip ((.) . second . (++)) 
+                                        . (swap .) 
+                                        . flip applyAllSeeds)
                       . first (,[])
 
 applyAllSeeds = curry $ bimap catMaybes join 
@@ -55,6 +54,6 @@ pairs [] = []
 main = do
   input <- readFile "input.txt"
   let (seeds, maps) = parseFile input
-  print . flip solve maps $ fmap (id &&& id) seeds
-  print . flip solve maps $ pairs seeds
+  print $ solve (fmap (id &&& id) seeds) maps
+  print $ solve (pairs seeds) maps
   pure ()
