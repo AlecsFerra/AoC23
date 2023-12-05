@@ -1,7 +1,7 @@
 module Solve (main) where
 
 import Control.Arrow ((&&&))
-import Control.Monad (ap, join)
+import Control.Monad (join, ap)
 import Data.Bifunctor (bimap, first, second)
 import Data.List (foldl')
 import Data.List.Split (splitOn)
@@ -9,7 +9,6 @@ import Data.Maybe (catMaybes, fromMaybe, listToMaybe)
 import Data.Tuple (swap)
 
 (.:) = (.) . (.)
-
 infixr 8 .:
 
 parseFile src
@@ -22,13 +21,23 @@ parseFile src
 
 solve = fst . minimum .: foldl' applyAllRules
 
-applyAllRules = curry $ uncurry (++) . uncurry (foldl' acc) . first (,[])
+applyAllRules = curry $ uncurry (++) 
+                      . uncurry (foldl' 
+                                $ uncurry 
+                                $ flip ((.) . second . (++)) 
+                                . (swap .) 
+                                . flip applyAllSeeds)
+                      . first (,[])
 
-acc = uncurry (flip ((.) . second . (++)) . (swap .) . flip applyAllSeeds)
+applyAllSeeds = curry $ bimap catMaybes join 
+                      . unzip 
+                      . uncurry fmap 
+                      . first (flip applySeed)
 
-applyAllSeeds = curry $ bimap catMaybes join . unzip . uncurry fmap . first (flip applySeed)
-
-applySeed = (`ap` snd) . (. fst) . (flip (first . fmap . rangeAdd) .) . intersect
+applySeed = (`ap` snd) 
+          . (. fst) 
+          . (flip (first . fmap . rangeAdd) .) 
+          . intersect
 
 rangeAdd = uncurry bimap . ((+) &&& (+))
 
