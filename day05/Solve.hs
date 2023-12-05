@@ -1,12 +1,16 @@
 module Solve (main) where
 
 import Control.Arrow ((&&&))
-import Control.Monad (join)
+import Control.Monad (ap, join)
 import Data.Bifunctor (bimap, first, second)
 import Data.List (foldl')
 import Data.List.Split (splitOn)
 import Data.Maybe (catMaybes, fromMaybe, listToMaybe)
 import Data.Tuple (swap)
+
+(.:) = (.) . (.)
+
+infixr 8 .:
 
 parseFile src
   | header : maps <- splitOn "\n\n" src =
@@ -16,17 +20,17 @@ parseFile src
       | [dst, src, range] <- read @Int <$> words line =
           ((src, src + range), dst - src)
 
-solve maps seeds = fst $ minimum $ foldl' applyAllRules seeds maps
+solve = fst . minimum .: foldl' applyAllRules
 
-applyAllRules seeds rules = uncurry (++) $ foldl' acc (seeds, []) rules
+applyAllRules = curry $ uncurry (++) . uncurry (foldl' acc) . first (,[])
 
-acc (toApply, applied) map = second (applied ++) $ swap $ applyAllSeeds toApply map
+acc = uncurry (flip ((.) . second . (++)) . (swap .) . flip applyAllSeeds)
 
-applyAllSeeds seeds map = bimap catMaybes join $ unzip $ fmap (`applySeed` map) seeds
+applyAllSeeds = curry $ bimap catMaybes join . unzip . uncurry fmap . first (flip applySeed)
 
-applySeed seed (range, val) = first (fmap $ rangeAdd val) $ intersect seed range
+applySeed = (`ap` snd) . (. fst) . (flip (first . fmap . rangeAdd) .) . intersect
 
-rangeAdd val = bimap (+ val) (+ val)
+rangeAdd = uncurry bimap . ((+) &&& (+))
 
 intersect (x, y) (l, u)
   | x > u = (Nothing, [(x, y)])
@@ -42,6 +46,6 @@ pairs [] = []
 main = do
   input <- readFile "input.txt"
   let (seeds, maps) = parseFile input
-  print $ solve maps $ fmap (id &&& id) seeds
-  print $ solve maps $ pairs seeds
+  print . flip solve maps $ fmap (id &&& id) seeds
+  print . flip solve maps $ pairs seeds
   pure ()
