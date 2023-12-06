@@ -15,8 +15,8 @@ part2 = uncurry solve
       . bimap num num
   where num = read . concat
 
-solve time distance | even time = (delta2 `div` 2) * 2 + 1
-                    | otherwise = (delta2 + 1)
+solve time distance | even time = delta2       `div` 2 * 2 + 1
+                    | otherwise = (delta2 + 1) `div` 2 * 2
   where
     optimal = time `div` 2
     delta2  = floor $ sqrt (fromIntegral $ time ^ 2 - 4 * distance)
