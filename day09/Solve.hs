@@ -1,6 +1,6 @@
 module Solve (main) where
 
-import Data.List (tails, foldl')
+import Data.List (foldl')
 import Control.Arrow ((&&&))
 import Control.Monad (ap)
 
