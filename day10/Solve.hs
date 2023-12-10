@@ -1,68 +1,85 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Move concatMap out" #-}
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE NondecreasingIndentation #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Solve (main) where
 
-import Data.Map (Map, lookup)
+import Control.Applicative (asum)
+import Control.Arrow (first, second, (&&&))
+import Control.Monad (guard, liftM2, filterM, liftM)
+import Control.Monad.Reader (ask, runReaderT)
+import Control.Monad.State (runStateT, gets, modify, lift)
+import Data.Map (Map)
 import Data.Map as M (fromList, lookup)
 import Data.Set (Set)
-import Data.Set as S (insert, member, empty, singleton)
-import Control.Arrow (first, second, (&&&))
-import Control.Monad (liftM2, join)
-import Data.Maybe (mapMaybe, fromJust)
+import Data.Set as S (empty, insert, member)
+import Data.Maybe (fromJust)
 
 type Position = (Int, Int)
-
-parse = (
-        fst . head . filter ((== 'S') . snd)
-        &&&
-        M.fromList . fmap (uncurry $ liftM2 (.) (,) (flip tubes))
-      )
-      . filter ((/= '.') . snd)
-      . concatMap (uncurry $ fmap . first . (,))
-      . zip [0 ..]
-      . fmap (zip [0 ..])
-      . lines
-      where tubes '|' = flip fmap [ first  (+ 1)
-                                  , first  (subtract 1)
-                                  ] . flip ($)
-            tubes '-' = flip fmap [ second (+ 1)
-                                  , second (subtract 1)
-                                  ] . flip ($)
-            tubes 'L' = flip fmap [ first  (subtract 1)
-                                  , second (+ 1)
-                                  ] . flip ($)
-            tubes 'J' = flip fmap [ first  (subtract 1)
-                                  , second (subtract 1)
-                                  ] . flip ($)
-            tubes '7' = flip fmap [ second (subtract 1)
-                                  , first  (+ 1)
-                                  ] . flip ($)
-            tubes 'F' = flip fmap [ first  (+ 1)
-                                  , second (+ 1)
-                                  ] . flip ($)
-            tubes 'S' = flip fmap [ second (subtract 1)
-                                  , second (+ 1)
-                                  , first  (+ 1)
-                                  , first  (subtract 1)
-                                  ] . flip ($)
-
-safeHead [] = Nothing
-safeHead x  = Just $ head x
-
-loop start graph = head
-                 $ mapMaybe (go start graph $ S.singleton start)
-                 $ fromJust 
-                 $ M.lookup start graph
+parse = (starting &&& flatten)
+    . filter ((/= '.') . snd)
+    . concatMap (uncurry $ fmap . first . (,))
+    . zip [0 ..]
+    . fmap (zip [0 ..])
+    . lines
   where
-    go start graph visited from | start == from         = Just [from]
-                                | S.member from visited = Nothing
-                                | otherwise             = (fmap (from : ) . safeHead . mapMaybe (go start graph (S.insert from visited))) =<< M.lookup from graph
+    starting = fst . head . filter ((== 'S') . snd)
+    flatten  = M.fromList . fmap (uncurry $ liftM2 (.) (,) (flip tubes))
 
-part1 x = length (uncurry loop x) `div` 2
+    tubes '|' = flip fmap [south, north]             . flip ($)
+    tubes '-' = flip fmap [west,  east]              . flip ($)
+    tubes 'L' = flip fmap [north, east]              . flip ($)
+    tubes 'J' = flip fmap [north, west]              . flip ($)
+    tubes '7' = flip fmap [west,  south]             . flip ($)
+    tubes 'F' = flip fmap [east,  south]             . flip ($)
+    tubes 'S' = flip fmap [north, south, east, west] . flip ($)
+
+    north = first  (subtract 1)
+    south = first  (+        1)
+    east  = second (+ 1)
+    west  = second (subtract 1)
+
+
+loopFrom g s = fst
+            <$> runStateT (runReaderT (go s) g) S.empty
+  where -- Transformer operations
+        mark = modify . S.insert
+        visited = gets . S.member
+        neighbors p = ask >>= lift . lift . M.lookup p
+
+        go p = do
+          alreadyVisited <- visited p
+          if p == s && alreadyVisited then pure [p] else do -- Early return if we 
+                                                            -- reached the end
+          guard $ not alreadyVisited                        -- Skip double visits
+
+          mark p                                            -- Mark as visited
+          n <- neighbors p                                  -- Get all neighbors
+          k <- asum $ fmap go n                             -- First neighbors that
+                                                            -- has a path to the end
+          pure $ p : k
+
+corners a = head a : fmap snd3 (filter (\(a, b, c) -> corner a c) $ zip3 a (tail a) (tail $ tail a))
+  where corner (a1, b1) (a2, b2) = a1 /= a2 && b1 /= b2
+        snd3 (_, x, _) = x
+
+area x = abs (t xs ys - t ys xs) `div` 2
+  where
+    xs = fmap fst x
+    ys = fmap snd x
+    t x y = sum $ (last x * head y) : zipWith (*) x (tail y)
+
+part1 = (`div` 2) . length
+
+part2 = area . corners
 
 main = do
   input <- parse <$> readFile "input.txt"
-  print $ part1 input
+
+  let loop = fromJust $ uncurry (flip loopFrom) input
+  let p1 = part1 loop
+
+  print p1
+  print $ part2 loop - p1 + 1
   pure ()
