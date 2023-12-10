@@ -1,7 +1,6 @@
 {-# HLINT ignore "Move concatMap out" #-}
-{-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE NondecreasingIndentation #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# LANGUAGE NondecreasingIndentation #-}
 
 module Solve (main) where
 
