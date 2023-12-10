@@ -14,7 +14,6 @@ import Data.Map as M (fromList, lookup)
 import Data.Set (Set)
 import Data.Set as S (empty, insert, member)
 import Data.Maybe (fromJust)
-import Debug.Trace
 
 parse = (starting &&& flatten)
     . filter ((/= '.') . snd)
