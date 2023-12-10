@@ -15,7 +15,6 @@ import Data.Set (Set)
 import Data.Set as S (empty, insert, member)
 import Data.Maybe (fromJust)
 
-type Position = (Int, Int)
 parse = (starting &&& flatten)
     . filter ((/= '.') . snd)
     . concatMap (uncurry $ fmap . first . (,))
