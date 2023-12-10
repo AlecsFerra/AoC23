@@ -14,6 +14,7 @@ import Data.Map as M (fromList, lookup)
 import Data.Set (Set)
 import Data.Set as S (empty, insert, member)
 import Data.Maybe (fromJust)
+import Debug.Trace
 
 parse = (starting &&& flatten)
     . filter ((/= '.') . snd)
@@ -58,26 +59,25 @@ loopFrom g s = fst
                                                             -- has a path to the end
           pure $ p : k
 
-corners a = head a : fmap snd3 (filter (\(a, b, c) -> corner a c) $ zip3 a (tail a) (tail $ tail a))
-  where corner (a1, b1) (a2, b2) = a1 /= a2 && b1 /= b2
-        snd3 (_, x, _) = x
-
 area x = abs (t xs ys - t ys xs) `div` 2
   where
     xs = fmap fst x
     ys = fmap snd x
     t x y = sum $ (last x * head y) : zipWith (*) x (tail y)
 
-part1 = (`div` 2) . length
+part1 = (`div` 2) 
+      . length 
+      . fromJust 
+      . uncurry (flip loopFrom)
 
-part2 = area . corners
+part2 = (+ 1) 
+      . uncurry (-) 
+      . (area &&& (`div` 2) . length) 
+      . fromJust 
+      . uncurry (flip loopFrom)
 
 main = do
   input <- parse <$> readFile "input.txt"
-
-  let loop = fromJust $ uncurry (flip loopFrom) input
-  let p1 = part1 loop
-
-  print p1
-  print $ part2 loop - p1 + 1
+  print $ part1 input
+  print $ part2 input
   pure ()
