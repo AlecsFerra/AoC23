@@ -21,7 +21,7 @@ empty selector = uncurry S.difference
                . ((S.fromList . uncurry enumFromTo . (minimum &&& maximum)) &&& S.fromList)
                . fmap selector
 
-pairs xs = [ (x,y) | (x:rest) <- tails xs , y <- rest ]
+pairs xs = [ (x, y) | x:s <- tails xs , y <- s ]
 
 intersections points x1 x2 = S.size 
                            $ S.intersection points 
