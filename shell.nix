@@ -4,6 +4,7 @@ let
         p.split_0_2_4 
         p.memoize
         p.vector
+        p.PSQueue
       ]);
 in
 pkgs.mkShell {
